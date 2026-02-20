@@ -1,0 +1,13 @@
+{
+  "name": "claude-project-tracker",
+  "owner": {
+    "name": "Raul"
+  },
+  "plugins": [
+    {
+      "name": "project-tracker",
+      "source": ".",
+      "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration"
+    }
+  ]
+}
