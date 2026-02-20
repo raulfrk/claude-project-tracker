@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-project-tracker",
-  "description": "Raul's Claude Code plugin collection — project management, code review agents, and more",
+  "description": "Raul's Claude Code plugin collection — project management and more",
   "owner": {
     "name": "Raul"
   },
@@ -15,16 +15,6 @@
       },
       "category": "productivity",
       "version": "1.0.5"
-    },
-    {
-      "name": "code-review-agents",
-      "source": "./plugins/code-review-agents",
-      "description": "Per-language code review agents with tiered severity findings and actionable suggestions. Supports C++ with more languages planned.",
-      "author": {
-        "name": "Raul"
-      },
-      "category": "code-quality",
-      "version": "0.1.0"
     }
   ]
 }
