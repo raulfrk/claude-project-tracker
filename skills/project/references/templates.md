@@ -66,17 +66,13 @@ When creating a new project, create `~/projects/tracking/<name>/TODOS.md` with:
 
 ---
 
-## CLAUDE.md Template
+## CLAUDE.md Template (public)
 
-When creating a new project, create `<path>/CLAUDE.md` in **each entry** in `content_paths` with identical content:
+When creating a new project, create `<path>/CLAUDE.md` in **each entry** in `content_paths`. This file is safe to commit — it contains no local paths or private data.
 
 ```markdown
 # <Display Name>
 
-> This file is auto-maintained by the `/project save` command.
-> Run `/project load <name>` to restore full project context.
-
-**Tracking directory**: `~/projects/tracking/<name>`
 **Type**: <type>
 **Created**: <YYYY-MM-DD>
 
@@ -92,6 +88,31 @@ When creating a new project, create `<path>/CLAUDE.md` in **each entry** in `con
 
 <!-- Populated by /project save -->
 
+## Project Structure
+
+<!-- Populated by /project map or /project save -->
+
+## Development Notes
+
+<!-- Populated by /project save -->
+```
+
+When updated by `/project save`, replace the Key Decisions, Project Structure, and Development Notes sections with current content from NOTES.md. Write identical content to the `CLAUDE.md` in **each** content directory.
+
+---
+
+## CLAUDE.local.md Template (private)
+
+When creating a new project, create `<path>/CLAUDE.local.md` in **each entry** in `content_paths`. This file must **not** be committed — ensure `*.local.md` is in `.gitignore`.
+
+```markdown
+# <Display Name> — Local Context
+
+> **Do not commit this file.** It contains local paths and session data.
+> Run `/project load <name>` to restore full project context.
+
+**Tracking directory**: `~/projects/tracking/<name>`
+
 ## Active TODOs
 
 <!-- Populated by /project save -->
@@ -99,13 +120,9 @@ When creating a new project, create `<path>/CLAUDE.md` in **each entry** in `con
 ## Recent Sessions
 
 <!-- 2-3 most recent session log entries. Populated by /project save -->
-
-## Notes
-
-<!-- Populated by /project save -->
 ```
 
-When updated by `/project save`, replace the Key Decisions, Active TODOs, Recent Sessions, and Notes sections with current content from NOTES.md and TODOS.md. Write identical content to the `CLAUDE.md` in **each** content directory.
+When updated by `/project save`, replace the Active TODOs section with current content from TODOS.md, and the Recent Sessions section with the 2–3 most recent entries from the Session Log in NOTES.md. Write identical content to the `CLAUDE.local.md` in **each** content directory.
 
 ---
 

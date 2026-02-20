@@ -14,7 +14,8 @@ Manage code, personal, documentation, and learning projects with local YAML inde
 - **Active index**: `~/projects/tracking/active-projects.yaml`
 - **Archived index**: `~/projects/tracking/archived-projects.yaml`
 - **Per-project tracking**: `~/projects/tracking/<project-name>/NOTES.md` and `TODOS.md`
-- **Context files**: `<path>/CLAUDE.md` in each entry of `content_paths` (auto-loaded by Claude on future sessions)
+- **Context files (public)**: `<path>/CLAUDE.md` in each entry of `content_paths` (safe to commit; auto-loaded by Claude)
+- **Context files (private)**: `<path>/CLAUDE.local.md` in each entry of `content_paths` (gitignored; contains tracking paths and session data)
 
 For YAML schemas, see [references/yaml-schemas.md](references/yaml-schemas.md).
 For file templates, see [references/templates.md](references/templates.md).
@@ -37,6 +38,18 @@ Each `content_paths` entry may optionally include a `mode` field that overrides 
 - **Effective mode** for a path: `entry.mode ?? project.mode ?? "standard"`
 - On write, only include `mode` on a `content_paths` entry when it differs from the project-level `mode`. Omit it when equal, to keep YAML clean.
 - A project is **learning-active** when at least one content path has effective mode `learning`.
+
+---
+
+## Gitignore Management: ensure-gitignore
+
+**ensure-gitignore** is a helper step used by several commands. When called with a content path:
+
+1. Run `git -C <path> rev-parse --show-toplevel` to check if the path is inside a git repo. If the command fails (exit code non-zero), the path is not a git repo — skip all remaining steps silently.
+2. Capture the repo root returned by that command. The `.gitignore` file lives at `<repo-root>/.gitignore`.
+3. Read `.gitignore` (it may not exist yet). Check whether any line matches `*.local.md` exactly.
+4. If `*.local.md` is already present, do nothing.
+5. If missing, append a newline and `*.local.md` to `.gitignore` (create the file if it doesn't exist).
 
 ---
 
@@ -93,14 +106,14 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
 4. Resolve `content_paths` list:
    - If user provided one or more paths → build list from responses.
    - If user left first prompt blank → `content_paths: [{path: "~/projects/<name>", type: "code", label: null}]`.
-   - If user entered "none" → `content_paths: []`; skip CLAUDE.md creation.
+   - If user entered "none" → `content_paths: []`; skip CLAUDE.md and CLAUDE.local.md creation.
 
 5. **Content path validation**: For each entry in `content_paths`, check `active-projects.yaml` and `archived-projects.yaml` for any existing project using the same path. If a duplicate is found, warn: "Path `<path>` is already used by project **<other-name>**. Proceed anyway? (y/n)"
 
 6. Create the tracking directory: `~/projects/tracking/<name>/`
 7. Create `NOTES.md` from the NOTES template in [references/templates.md](references/templates.md), inserting the overview text into the Overview section if provided.
 8. Create `TODOS.md` from the TODOS template in [references/templates.md](references/templates.md).
-9. For each entry in `content_paths`, run `mkdir -p <path>` and create `CLAUDE.md` from the CLAUDE.md template in [references/templates.md](references/templates.md) (identical content in each).
+9. For each entry in `content_paths`, run `mkdir -p <path>`, create `CLAUDE.md` (public) and `CLAUDE.local.md` (private) from the templates in [references/templates.md](references/templates.md), then run **ensure-gitignore** for that path.
 10. If Todoist: call `add-projects` with `name: <display_name>`. Save the returned project ID.
 11. Append the new entry to `~/projects/tracking/active-projects.yaml` (create the file with `projects: []` header if it doesn't exist). Set `last_session: null`. Write `content_paths` list per schema in [references/yaml-schemas.md](references/yaml-schemas.md).
 
@@ -114,7 +127,7 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
 
 Maps an existing content directory (e.g., a repo), extracts useful insights, and sets up project tracking files and `CLAUDE.md` for it.
 
-**If `[existing-project-name]` is provided**: add the mapped path to that project's `content_paths` instead of creating a new project. Skip to step 2–3 for exploration, then ask for **type** and optional **label** for this new entry, validate, `mkdir -p`, create `CLAUDE.md`, `zoxide add`, and append the entry to the project's `content_paths` in `active-projects.yaml`. Confirm and stop — no new project is created.
+**If `[existing-project-name]` is provided**: add the mapped path to that project's `content_paths` instead of creating a new project. Skip to step 2–3 for exploration, then ask for **type** and optional **label** for this new entry, validate, `mkdir -p`, create `CLAUDE.md` and `CLAUDE.local.md`, run **ensure-gitignore**, `zoxide add`, and append the entry to the project's `content_paths` in `active-projects.yaml`. Confirm and stop — no new project is created.
 
 1. **Resolve the path**: Expand `~` and resolve the provided `<path>` to an absolute path. If it does not exist, report an error and stop.
 
@@ -131,7 +144,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
      - `.github/workflows/` → GitHub Actions CI/CD
    - **Project structure**: Top-level directories and notable files (src, lib, tests, docs, etc.)
    - **Git context**: Run `git log --oneline -10` to see recent commit history (if it's a git repo). Run `git remote get-url origin` to capture the remote URL.
-   - **Existing CLAUDE.md**: If one already exists at the root, read it for any recorded context.
+   - **Existing CLAUDE.md / CLAUDE.local.md**: If one or both already exist at the root, read them for any recorded context. Preserve useful public content (description, overview, key decisions) for the new `CLAUDE.md`.
 
 3. **Synthesize findings** into:
    - A one-line **description** (from README title/first sentence, or `package.json` description)
@@ -162,15 +175,17 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 
 9. Create `TODOS.md` using the TODOS template, with any inferred initial todos pre-filled in Active (or empty if none).
 
-10. Create/overwrite `CLAUDE.md` in `<path>` using the CLAUDE.md template, populated with description, overview, key decisions (if any), and active TODOs.
+10. Create/overwrite `CLAUDE.md` (public) in `<path>` using the CLAUDE.md template, populated with description, overview, key decisions, project structure, and development notes.
 
-11. Append the new entry to `~/projects/tracking/active-projects.yaml` with `content_paths: [{path: <path>, type: "code", label: null}]` and `last_session: <today>`.
+11. Create `CLAUDE.local.md` (private) in `<path>` using the CLAUDE.local.md template, populated with the tracking directory path and any active TODOs. Run **ensure-gitignore** for `<path>`.
 
-12. Run `for i in $(seq 100); do zoxide add <path>; done` to register the content path with high frecency.
+12. Append the new entry to `~/projects/tracking/active-projects.yaml` with `content_paths: [{path: <path>, type: "code", label: null}]` and `last_session: <today>`.
 
-13. If Todoist: call `add-projects` with `name: <display_name>`. Save the returned project ID.
+13. Run `for i in $(seq 100); do zoxide add <path>; done` to register the content path with high frecency.
 
-14. Confirm: "Mapped **<display_name>** from `<path>`. Tracking at `~/projects/tracking/<name>/`."
+14. If Todoist: call `add-projects` with `name: <display_name>`. Save the returned project ID.
+
+15. Confirm: "Mapped **<display_name>** from `<path>`. Tracking at `~/projects/tracking/<name>/`."
 
 ---
 
@@ -216,7 +231,8 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
    - If the file is empty or missing: "**Learning mode active.** No topics tracked yet."
    - List which paths are in learning mode: "Learning paths: `<path1>`, `<path2>`". If mixed, also list: "Standard paths: `<path3>`".
    - Append to announcement: "Learning mode active for <N>/<total> content path(s) — I'll teach as we build in those directories."
-8. Announce: "Project **<name>** is now loaded. I'll offer to sync tasks to Todoist as we work."
+8. **Gitignore check**: For each entry in `content_paths` where the directory exists, run **ensure-gitignore**.
+9. Announce: "Project **<name>** is now loaded. I'll offer to sync tasks to Todoist as we work."
 
 ---
 
@@ -239,9 +255,11 @@ Syncs the current session's knowledge back to all project files, keeping trackin
 6. **Update `TODOS.md`**:
    - Move completed items from Active to Completed.
    - Add any new todos identified during the session.
-7. For each entry in `content_paths` where the directory exists, **update `CLAUDE.md`** in that directory (identical content in each):
-   - Rewrite it using the CLAUDE.md template from [references/templates.md](references/templates.md), populated with the latest description, overview, key decisions, active todos, and tracking directory path.
-   - Include the 2–3 most recent session log entries in the **Recent Sessions** section.
+7. For each entry in `content_paths` where the directory exists:
+   - **7a. Update `CLAUDE.md`** (public): Rewrite using the CLAUDE.md template from [references/templates.md](references/templates.md), populated with the latest description, overview, key decisions, project structure, and development notes from NOTES.md.
+   - **7b. Update `CLAUDE.local.md`** (private): Rewrite using the CLAUDE.local.md template from [references/templates.md](references/templates.md), populated with the tracking directory path, active TODOs from TODOS.md, and the 2–3 most recent session log entries.
+   - **7c. ensure-gitignore**: Run **ensure-gitignore** for this path.
+   - **7d. Migration**: If the existing `CLAUDE.md` contains a `**Tracking directory**` line (old-style combined format), it hasn't been split yet. Rewrite both `CLAUDE.md` and `CLAUDE.local.md` from scratch using current data, performing the split migration automatically.
 8. Update `last_session: <today's date>` in `active-projects.yaml` for this project.
 9. If the project is learning-active (at least one content path has effective mode `learning`):
    - Identify any concepts taught or significantly discussed during this session.
@@ -250,7 +268,7 @@ Syncs the current session's knowledge back to all project files, keeping trackin
    - Add a "Learning" bullet to the session log entry: "Covered topics: <comma-separated titles>."
    - Note: Topics are project-wide. Even if only some paths are in learning mode, all topics go into the shared `learning/` directory.
 10. **Sync offer**: If `todoist_project_id` is not null, ask: "Sync tasks with Todoist now? (y/n)". If yes, run the sync logic from `/project sync <name>`.
-10. Confirm: "Saved project **<name>**. Tracking files and `CLAUDE.md` are up to date."
+11. Confirm: "Saved project **<name>**. Tracking files, `CLAUDE.md`, and `CLAUDE.local.md` are up to date."
 
 ---
 
@@ -347,7 +365,7 @@ Renames a project across all locations.
    - Update `name` and `tracking_path` in `active-projects.yaml`.
    - Update the `/project load <name>` reference line in `TODOS.md`.
    - Ask: "Also update the display name? Current: **<display_name>**. (y/n/new value)"
-   - For each entry in `content_paths` where `CLAUDE.md` exists, update the `**Tracking directory**` line.
+   - For each entry in `content_paths` where `CLAUDE.local.md` exists, update the `**Tracking directory**` line in `CLAUDE.local.md`.
    - If `todoist_project_id` is set, ask: "Also rename in Todoist? (y/n)". If yes, call `update-projects`.
 5. Confirm: "Renamed **<old>** → **<new>**."
 
@@ -358,14 +376,14 @@ Renames a project across all locations.
 Interactively update project metadata without manual YAML editing.
 
 1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found. Normalize `content_path` → `content_paths` if needed.
-2. Display current metadata: `display_name`, `type`, `description`, project-level `mode`, and `content_paths` as a numbered list with type, label, and mode override (if any).
+2. Display current metadata: `display_name`, `type`, `description`, project-level `mode`, and `content_paths` as a numbered list with type, label, mode override (if any), and whether `CLAUDE.md` / `CLAUDE.local.md` exist at each path.
 3. Ask which fields to update (user can specify one or more, or "all"). `content_paths` is a separate sub-flow (see below).
 4. For each selected scalar field, prompt for the new value.
 5. **`content_paths` sub-flow** (if selected or user says "edit paths"):
    - Display numbered list of current entries (path, type, label, and mode override if set).
    - Ask: "Add, remove, or edit an entry? (add/remove/edit/done)"
-   - **Add**: prompt path, type (default: `code`), optional label, optional mode override (blank = inherit project mode); validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md`; run zoxide add loop. If mode is `learning` and the learning directory doesn't exist, create it.
-   - **Remove**: prompt for entry number to remove; confirm; run `zoxide remove <path>`; ask: "Also delete `CLAUDE.md` from this path? (y/n)"; delete if confirmed.
+   - **Add**: prompt path, type (default: `code`), optional label, optional mode override (blank = inherit project mode); validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md` and `CLAUDE.local.md`; run **ensure-gitignore**; run zoxide add loop. If mode is `learning` and the learning directory doesn't exist, create it.
+   - **Remove**: prompt for entry number to remove; confirm; run `zoxide remove <path>`; ask: "Also delete `CLAUDE.md` and `CLAUDE.local.md` from this path? (y/n)"; delete both if confirmed.
    - **Edit**: prompt entry number; prompt new path, type, label, mode (blank = keep current for each); if path changed run `zoxide remove <old>` and `zoxide add <new>`. If new mode equals project-level mode, omit the per-path `mode` field on write.
    - Repeat until "done".
 6. Write the updated entry back to `active-projects.yaml` using `content_paths` format.
@@ -373,6 +391,7 @@ Interactively update project metadata without manual YAML editing.
    - Update the heading in `NOTES.md`.
    - Update the heading in `TODOS.md`.
    - For each entry in `content_paths` where `CLAUDE.md` exists, update its heading.
+   - For each entry in `content_paths` where `CLAUDE.local.md` exists, update its heading.
    - If Todoist is linked, ask: "Also update Todoist project name? (y/n)". If yes, call `update-projects`.
 8. Confirm: "Updated metadata for **<name>**."
 
