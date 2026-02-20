@@ -5,13 +5,10 @@
   "owner": {
     "name": "Raul"
   },
-  "metadata": {
-    "pluginRoot": "./plugins"
-  },
   "plugins": [
     {
       "name": "project-tracker",
-      "source": "project-tracker",
+      "source": "./plugins/project-tracker",
       "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
       "author": {
         "name": "Raul"
@@ -21,7 +18,7 @@
     },
     {
       "name": "code-review-agents",
-      "source": "code-review-agents",
+      "source": "./plugins/code-review-agents",
       "description": "Per-language code review agents with tiered severity findings and actionable suggestions. Supports C++ with more languages planned.",
       "author": {
         "name": "Raul"
