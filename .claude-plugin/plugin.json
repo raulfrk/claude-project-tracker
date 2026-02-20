@@ -1,7 +1,7 @@
 {
   "name": "project-tracker",
   "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Raul"
   },
