@@ -37,7 +37,7 @@ Each `content_paths` entry may optionally include a `mode` field that overrides 
 
 - **Effective mode** for a path: `entry.mode ?? project.mode ?? "standard"`
 - On write, only include `mode` on a `content_paths` entry when it differs from the project-level `mode`. Omit it when equal, to keep YAML clean.
-- A project is **learning-active** when at least one content path has effective mode `learning`.
+- A project is **learning-active** when at least one content path has effective mode `learning` or `active-learning`.
 
 ---
 
@@ -77,7 +77,7 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
    |------|-------------|------|------|---------|--------------|---------|
    | ... | ... | ... | <mode summary> | ... | ... | linked / — |
 
-   **Mode column logic**: If all paths share the same effective mode, show that mode (`standard` or `learning`). If paths have mixed modes, show `mixed (N/M learning)`. If no content paths, show the project-level mode.
+   **Mode column logic**: If all paths share the same effective mode, show that mode (`standard`, `learning`, or `active-learning`). If paths have mixed modes, show `mixed (N/M learning-active)`. If no content paths, show the project-level mode.
 
 3. Check if `~/projects/tracking/archived-projects.yaml` exists. If so, read it and mention the count: "X archived project(s). Use `/project load <name>` to view archived."
 
@@ -97,7 +97,7 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
      - If a path is provided, ask for **type** (default: `code`) and an optional **label**.
      - Then ask: "Add another content directory? (path or done)" — repeat until "done" or "none".
    - **Mode**: After the content directory loop:
-     - If only one path (or no paths): ask once — "Mode for this project? (standard/learning, default: standard)". Set as project-level `mode`.
+     - If only one path (or no paths): ask once — "Mode for this project? (standard/learning/active-learning, default: standard)". Set as project-level `mode`.
      - If more than one path: ask "Same mode for all paths, or set per path? (all/per-path)".
        - If "all": ask for mode once, set as project-level `mode`, no per-path overrides.
        - If "per-path": ask for mode per path. Set project-level `mode` to the most common value. Write `mode` on entries that differ from the project-level.
@@ -225,12 +225,12 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 4. Read and display `~/projects/tracking/<name>/NOTES.md`.
 5. Read and display `~/projects/tracking/<name>/TODOS.md`.
 6. If `todoist_project_id` is set (not null), call `find-tasks` with `projectId: <todoist_project_id>` and display open tasks. Then ask: "Sync tasks with Todoist now? (y/n)". If yes, run the sync logic from `/project sync <name>`.
-7. **Learning mode check**: Compute the effective mode for each content path (see Mode Normalization). If the project is learning-active (at least one path has effective mode `learning`):
+7. **Learning mode check**: Compute the effective mode for each content path (see Mode Normalization). If the project is learning-active (at least one path has effective mode `learning` or `active-learning`):
    - Read `~/projects/tracking/<name>/learning/learning.yaml` if it exists.
    - If the file exists and has topics, display: "**Learning mode active.** X topic(s) tracked:" followed by a mastery breakdown (count per mastery level, e.g., `emerging: 2, developing: 1, solid: 1`).
    - If the file is empty or missing: "**Learning mode active.** No topics tracked yet."
-   - List which paths are in learning mode: "Learning paths: `<path1>`, `<path2>`". If mixed, also list: "Standard paths: `<path3>`".
-   - Append to announcement: "Learning mode active for <N>/<total> content path(s) — I'll teach as we build in those directories."
+   - List which paths are in each mode (omit empty groups): "Learning paths: `<path1>`". "Active-learning paths: `<path2>`". "Standard paths: `<path3>`".
+   - Append mode-specific messages to the announcement: for `learning` paths — "I'll implement and teach as we work"; for `active-learning` paths — "I'll scaffold and you'll implement — pair programming style."
 8. **Gitignore check**: For each entry in `content_paths` where the directory exists, run **ensure-gitignore**.
 9. Announce: "Project **<name>** is now loaded. I'll offer to sync tasks to Todoist as we work."
 
@@ -261,7 +261,7 @@ Syncs the current session's knowledge back to all project files, keeping trackin
    - **7c. ensure-gitignore**: Run **ensure-gitignore** for this path.
    - **7d. Migration**: If the existing `CLAUDE.md` contains a `**Tracking directory**` line (old-style combined format), it hasn't been split yet. Rewrite both `CLAUDE.md` and `CLAUDE.local.md` from scratch using current data, performing the split migration automatically.
 8. Update `last_session: <today's date>` in `active-projects.yaml` for this project.
-9. If the project is learning-active (at least one content path has effective mode `learning`):
+9. If the project is learning-active (at least one content path has effective mode `learning` or `active-learning`):
    - Identify any concepts taught or significantly discussed during this session.
    - For each **new** concept: create `~/projects/tracking/<name>/learning/<topic-slug>.md` from the Learning Topic template in [references/templates.md](references/templates.md). Add a new entry to `learning.yaml`.
    - For each **revisited** concept (already in `learning.yaml`): update `last_reviewed` to today, re-assess mastery based on the session, and append a dated note to the `## Review Notes` section of its `.md` file.
@@ -382,7 +382,7 @@ Interactively update project metadata without manual YAML editing.
 5. **`content_paths` sub-flow** (if selected or user says "edit paths"):
    - Display numbered list of current entries (path, type, label, and mode override if set).
    - Ask: "Add, remove, or edit an entry? (add/remove/edit/done)"
-   - **Add**: prompt path, type (default: `code`), optional label, optional mode override (blank = inherit project mode); validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md` and `CLAUDE.local.md`; run **ensure-gitignore**; run zoxide add loop. If mode is `learning` and the learning directory doesn't exist, create it.
+   - **Add**: prompt path, type (default: `code`), optional label, optional mode override (blank = inherit project mode); validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md` and `CLAUDE.local.md`; run **ensure-gitignore**; run zoxide add loop. If mode is `learning` or `active-learning` and the learning directory doesn't exist, create it.
    - **Remove**: prompt for entry number to remove; confirm; run `zoxide remove <path>`; ask: "Also delete `CLAUDE.md` and `CLAUDE.local.md` from this path? (y/n)"; delete both if confirmed.
    - **Edit**: prompt entry number; prompt new path, type, label, mode (blank = keep current for each); if path changed run `zoxide remove <old>` and `zoxide add <new>`. If new mode equals project-level mode, omit the per-path `mode` field on write.
    - Repeat until "done".
@@ -415,17 +415,17 @@ Get or set the assistance mode, globally or per content path.
    - If the project is learning-active, read `learning/learning.yaml` and show topic count + mastery breakdown.
    - Stop.
 
-3. Validate `[mode]` is `standard` or `learning`. If invalid, report: "Unknown mode '<mode>'. Valid modes: standard, learning." Stop.
+3. Validate `[mode]` is `standard`, `learning`, or `active-learning`. If invalid, report: "Unknown mode '<mode>'. Valid modes: standard, learning, active-learning." Stop.
 
 4. **Set mode**:
    - **If `[path-or-index]` is provided**: resolve to a specific content_paths entry by 1-based index or path substring match. Set `mode` on that entry. If the new mode equals the project-level `mode`, remove the per-path `mode` field instead (clean up). Write to `active-projects.yaml`.
    - **If `[path-or-index]` is `all` or not provided**: set the project-level `mode` to the given value. Clear all per-path `mode` overrides so all paths inherit the new default. Write to `active-projects.yaml`.
 
-5. **If any path is switching to `learning`** (and learning directory doesn't exist):
+5. **If any path is switching to `learning` or `active-learning`** (and learning directory doesn't exist):
    - Create `~/projects/tracking/<name>/learning/` directory.
    - Create `learning.yaml` from the learning.yaml template in [references/templates.md](references/templates.md) only if it doesn't already exist (preserve prior data).
 
-6. **If no paths remain in `learning`** (project was learning-active, now none are):
+6. **If no paths remain in `learning` or `active-learning`** (project was learning-active, now none are):
    - Do NOT delete learning directory or files — preserve all prior data.
 
 7. Confirm with the updated table showing new effective modes.
@@ -461,29 +461,20 @@ When the user mentions tasks, todos, or action items during a session after `/pr
 
 ## Ambient Behavior: Learning Mode
 
-When a project is loaded and the **current working context** involves a content path with effective mode `learning`, apply these behaviors throughout the session in addition to the standard ambient behaviors.
+When a project is loaded and the **current working context** involves a content path with effective mode `learning` or `active-learning`, apply these behaviors throughout the session in addition to the standard ambient behaviors.
 
-**Context detection**: Determine the active content path by matching the current working directory against the project's `content_paths` entries (longest prefix match). If the matched path has effective mode `learning`, learning behaviors are active. If no path matches or the matched path's effective mode is `standard`, learning behaviors are inactive. When working across multiple paths in one session, learning behaviors toggle based on which path is being worked in.
+**Context detection**: Determine the active content path by matching the current working directory against the project's `content_paths` entries (longest prefix match). Use the effective mode of the matched path to determine which learning behaviors to apply. If no path matches or the matched path's effective mode is `standard`, learning behaviors are inactive. When working across multiple paths in one session, learning behaviors toggle based on which path is being worked in.
 
-### Before tasks
+---
 
-- Identify key concepts the task will require.
-- Cross-reference `learning.yaml` mastery levels:
-  - `solid` / `mastered` → skip explanation, proceed directly.
-  - `developing` → brief refresh (1–2 sentences) before starting.
-  - `emerging` / `none` / new concept → full explanation before starting.
+### Shared behavior (both `learning` and `active-learning`)
 
-### During implementation
+**Before tasks**: Identify key concepts the task will require. Cross-reference `learning.yaml` mastery levels:
+- `solid` / `mastered` → skip explanation, proceed directly.
+- `developing` → brief refresh (1–2 sentences) before starting.
+- `emerging` / `none` / new concept → full explanation before starting.
 
-- Briefly narrate significant decisions (why, not just what).
-- Highlight transferable patterns when they appear (e.g., "this is the same pattern as X").
-
-### Gauging understanding
-
-- After meaningful work units, occasionally check comprehension with a light question (e.g., "Does that make sense? Could you describe what we just did?").
-- Do not quiz after every step — use judgment about when it adds value.
-
-### Mastery heuristics (assess at end of session for `/project save`)
+**Mastery heuristics** (assess at end of session for `/project save`):
 
 | Mastery | Indicator |
 |---------|-----------|
@@ -492,11 +483,42 @@ When a project is loaded and the **current working context** involves a content 
 | `solid` | Described the approach before Claude coded it |
 | `mastered` | Caught a mistake or explained the concept back accurately |
 
-### Can-reimplement heuristics (assess at end of session for `/project save`)
+---
+
+### `learning` mode
+
+Claude implements the code fully. The user observes, answers questions, and is never asked to write code.
+
+- Narrate significant decisions (why, not just what).
+- Highlight transferable patterns when they appear (e.g., "this is the same pattern as X").
+- After meaningful work units, quiz the user with a comprehension check (e.g., "Could you describe what we just did?"). Do not quiz after every step — use judgment.
+- Do NOT assign implementation tasks to the user.
+
+**Can-reimplement heuristics** (based on whether user can explain what Claude implemented):
+
+| Level | Indicator |
+|-------|-----------|
+| `none` / `low` | Couldn't describe what was done or why |
+| `medium` | Described the general approach but not the specifics |
+| `high` | Accurately explained both what was done and why |
+| `confident` | Could outline the steps to reproduce it from scratch |
+
+---
+
+### `active-learning` mode
+
+Pair programming. Claude scaffolds; the user implements.
+
+1. **Scaffold**: Claude provides structure — skeleton code, function signatures, clear inline TODOs/blanks indicating what the user should fill in.
+2. **User implements**: User fills in the logic. Claude does not implement unless the user is stuck.
+3. **If stuck**: Give a targeted nudge (hint, not the answer). If still stuck after one nudge, implement that specific part and explain it.
+4. **Review**: After the user submits their implementation, Claude reviews — highlights what's good, explains what could be improved, and narrates any changes made.
+
+**Can-reimplement heuristics** (based on whether user actually wrote the code):
 
 | Level | Indicator |
 |-------|-----------|
 | `none` / `low` | Watched but couldn't articulate the steps |
 | `medium` | Described the general approach but not specifics |
 | `high` | Outlined implementation steps correctly |
-| `confident` | Wrote the code themselves |
+| `confident` | Wrote the code themselves with minimal nudges |

@@ -11,9 +11,9 @@ projects:
       - path: "~/repos/my-app"
         type: "code"               # code | docs | config | assets | other
         label: "main repo"         # Optional. Defaults to directory basename if omitted.
-        mode: "learning"           # Optional. standard | learning. Overrides project-level mode for this path.
+        mode: "learning"           # Optional. standard | learning | active-learning. Overrides project-level mode for this path.
     type: "code"                     # One of: code | personal | documentation | learning
-    mode: "standard"                 # standard | learning. Default: standard.
+    mode: "standard"                 # standard | learning | active-learning. Default: standard.
     created: "2026-02-19"            # ISO date
     todoist_project_id: "12345"      # Todoist project ID string. null if not linked.
     description: "Short description" # One-line description. Empty string if none.
@@ -28,7 +28,7 @@ Archived entries add one additional field:
 
 ## `learning/learning.yaml`
 
-Stored at `~/projects/tracking/<name>/learning/learning.yaml`. Created on-demand when a project's mode is set to `learning`.
+Stored at `~/projects/tracking/<name>/learning/learning.yaml`. Created on-demand when a project's mode is set to `learning` or `active-learning`.
 
 ```yaml
 topics:
@@ -62,7 +62,7 @@ topics:
 - `name` must be kebab-case (lowercase letters, digits, hyphens only).
 - `content_paths` is a list; use `content_paths: []` when no directories are set.
 - `todoist_project_id` may be `null` when not applicable.
-- `mode` at project level defaults to `standard` when not present (backward compatible).
+- `mode` at project level defaults to `standard` when not present (backward compatible). Valid values: `standard`, `learning`, `active-learning`.
 - `mode` on a `content_paths` entry is optional. When present, it overrides the project-level `mode` for that path. When absent, the path inherits the project-level `mode`. Effective mode = `entry.mode ?? project.mode ?? "standard"`.
 - The file always starts with `projects:` at the root level, even when empty (`projects: []`).
 - Dates use `YYYY-MM-DD` format.
@@ -82,3 +82,4 @@ Older entries have `mode` only at the project level, not on individual `content_
 
 - If a `content_paths` entry has no `mode` field, its effective mode is the project-level `mode` (which itself defaults to `standard`).
 - On write, only include `mode` on a `content_paths` entry if it differs from the project-level `mode`. Omit it otherwise to keep YAML clean.
+- Both `learning` and `active-learning` are learning-active modes — they both trigger learning directory creation and mastery tracking. They differ only in who implements the code.

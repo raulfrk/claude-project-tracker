@@ -128,7 +128,7 @@ When updated by `/project save`, replace the Active TODOs section with current c
 
 ## learning.yaml Template
 
-When creating the learning directory for a project switching to `learning` mode, create `~/projects/tracking/<name>/learning/learning.yaml` with:
+When creating the learning directory for a project switching to `learning` or `active-learning` mode, create `~/projects/tracking/<name>/learning/learning.yaml` with:
 
 ```yaml
 topics: []
