@@ -224,7 +224,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 3. **Content path validation**: For each entry in `content_paths`, check that the directory exists (`Bash: test -d <path>`). If missing, warn per path: "Content path `<path>` does not exist. You may need to clone or restore the directory."
 4. Read and display `~/projects/tracking/<name>/NOTES.md`.
 5. Read and display `~/projects/tracking/<name>/TODOS.md`.
-6. If `todoist_project_id` is set (not null), call `find-tasks` with `projectId: <todoist_project_id>` and display open tasks.
+6. If `todoist_project_id` is set (not null), call `find-tasks` with `projectId: <todoist_project_id>` and display open tasks. Then ask: "Sync tasks with Todoist now? (y/n)". If yes, run the sync logic from `/project sync <name>`.
 7. **Learning mode check**: Compute the effective mode for each content path (see Mode Normalization). If the project is learning-active (at least one path has effective mode `learning`):
    - Read `~/projects/tracking/<name>/learning/learning.yaml` if it exists.
    - If the file exists and has topics, display: "**Learning mode active.** X topic(s) tracked:" followed by a mastery breakdown (count per mastery level, e.g., `emerging: 2, developing: 1, solid: 1`).
