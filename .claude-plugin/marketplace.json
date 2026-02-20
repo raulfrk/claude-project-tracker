@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "project-tracker",
-      "source": "./",
+      "source": {"source": "github", "repo": "raulfrk/claude-project-tracker"},
       "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
       "author": {
         "name": "Raul"
