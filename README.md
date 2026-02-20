@@ -1,13 +1,12 @@
 # claude-project-tracker
 
-A Claude Code plugin marketplace with productivity and code quality plugins.
+A Claude Code plugin marketplace with productivity plugins.
 
 ## Plugins
 
 | Plugin | Description | Install |
 |--------|-------------|---------|
 | `project-tracker` | Local project management with YAML indexes, tracking files, learning mode, and Todoist integration | `claude plugin install project-tracker@claude-project-tracker` |
-| `code-review-agents` | Per-language code review agents with tiered severity findings and actionable suggestions (C++ supported) | `claude plugin install code-review-agents@claude-project-tracker` |
 
 ---
 
@@ -65,56 +64,6 @@ A Claude Code plugin marketplace with productivity and code quality plugins.
   }
 }
 ```
-
----
-
-## `code-review-agents`
-
-### What It Does
-
-- Structured code reviews with **4 severity tiers**: Bugs/Safety → Correctness → Quality → Style
-- **Actionable findings**: Every issue includes a before/after code example
-- **Git-aware**: Review staged changes, diffs between refs, or specific files/directories
-- **Fix mode**: Offer to apply fixes interactively
-- **Tool integration**: Optionally run `clang-tidy` and `cppcheck` and integrate their output
-- **Extensible**: New languages are added as reference files — no structural changes needed
-
-### Languages
-
-| Language | Status |
-|----------|--------|
-| C++ | ✅ Supported |
-| Rust | Planned |
-| Python | Planned |
-| Go | Planned |
-
-### Usage
-
-```
-/review cpp <file.cpp>          — review a single file
-/review cpp src/                — review all C++ files in a directory
-/review cpp staged              — review git staged changes
-/review cpp HEAD~3              — review last 3 commits
-/review cpp main..HEAD          — review branch diff
-/review cpp <target> --fix      — review and offer to apply fixes
-/review cpp <target> --tier 1   — only show blocking (Tier 1) issues
-/review cpp <target> --tool     — also run clang-tidy/cppcheck
-```
-
-### Review Tiers
-
-| Tier | Name | Verdict |
-|------|------|---------|
-| 1 | Bugs/Safety | BLOCK MERGE |
-| 2 | Correctness/Design | NEEDS CHANGES |
-| 3 | Quality/Modern Practices | PASS WITH COMMENTS |
-| 4 | Style | PASS WITH COMMENTS |
-
-### Prerequisites
-
-- Claude Code CLI
-- `jq` (for the post-edit hook)
-- **Optional**: `clang-tidy`, `cppcheck` (for `--tool` mode)
 
 ---
 

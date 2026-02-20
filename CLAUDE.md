@@ -31,10 +31,9 @@ A learning project to iteratively improve the `/project` Claude Code skill — a
 
 - `.claude-plugin/marketplace.json` — marketplace catalog listing all plugins
 - `plugins/project-tracker/` — project management plugin (skills, hooks, plugin.json)
-- `plugins/code-review-agents/` — code review agent plugin (skills, hooks, plugin.json)
 
 ## Development Notes
 
 - GitHub repo: https://github.com/raulfrk/claude-project-tracker
-- Plugin installed as `project-tracker@claude-project-tracker` (v1.0.3)
+- Plugin installed as `project-tracker@claude-project-tracker` (v1.0.5)
 - See full session log in `~/projects/tracking/project-skill-improvement/NOTES.md`
