@@ -7,7 +7,10 @@ projects:
   - name: "kebab-case-id"           # Unique identifier, used for directory and lookups
     display_name: "Human Name"       # Human-readable name
     tracking_path: "~/projects/tracking/kebab-case-id"
-    content_path: "~/repos/my-app"  # Where actual project files live. null if unset.
+    content_paths:                   # Ordered list of content directories. Empty list = none.
+      - path: "~/repos/my-app"
+        type: "code"               # code | docs | config | assets | other
+        label: "main repo"         # Optional. Defaults to directory basename if omitted.
     type: "code"                     # One of: code | personal | documentation | learning
     mode: "standard"                 # standard | learning. Default: standard.
     created: "2026-02-19"            # ISO date
@@ -56,7 +59,17 @@ topics:
 ## Notes
 
 - `name` must be kebab-case (lowercase letters, digits, hyphens only).
-- `content_path` and `todoist_project_id` may be `null` when not applicable.
+- `content_paths` is a list; use `content_paths: []` when no directories are set.
+- `todoist_project_id` may be `null` when not applicable.
 - `mode` defaults to `standard` when not present (backward compatible).
 - The file always starts with `projects:` at the root level, even when empty (`projects: []`).
 - Dates use `YYYY-MM-DD` format.
+
+## Backward Compatibility: `content_path` → `content_paths`
+
+Older entries may have a singular `content_path: "string" | null` field. On read, normalize it:
+
+- `content_path: "~/some/path"` → `content_paths: [{path: "~/some/path", type: null, label: null}]`
+- `content_path: null` → `content_paths: []`
+
+On every write, always output `content_paths` (plural) and omit `content_path`. No bulk migration — projects update incrementally as touched.

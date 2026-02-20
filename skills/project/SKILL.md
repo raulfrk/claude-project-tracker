@@ -14,10 +14,21 @@ Manage code, personal, documentation, and learning projects with local YAML inde
 - **Active index**: `~/projects/tracking/active-projects.yaml`
 - **Archived index**: `~/projects/tracking/archived-projects.yaml`
 - **Per-project tracking**: `~/projects/tracking/<project-name>/NOTES.md` and `TODOS.md`
-- **Context file**: `<content_path>/CLAUDE.md` (auto-loaded by Claude on future sessions)
+- **Context files**: `<path>/CLAUDE.md` in each entry of `content_paths` (auto-loaded by Claude on future sessions)
 
 For YAML schemas, see [references/yaml-schemas.md](references/yaml-schemas.md).
 For file templates, see [references/templates.md](references/templates.md).
+
+---
+
+## Content Path Normalization
+
+Older project entries may use the singular `content_path` field. Before using any project's paths, normalize on read:
+
+- `content_path: "~/some/path"` → treat as `content_paths: [{path: "~/some/path", type: null, label: null}]`
+- `content_path: null` (or field absent) → treat as `content_paths: []`
+
+On every write, always output `content_paths` (plural list) and omit `content_path`. Apply this normalization in all commands — no bulk migration needed.
 
 ---
 
@@ -58,34 +69,37 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
    - **Display name**: Human-readable name (default: title-case of the kebab name)
    - **Description**: Short one-line description (optional)
    - **Overview**: What is this project and what problem does it solve? (1–3 sentences, optional)
-   - **Content directory**: Where the actual project files live (e.g., `~/repos/my-app`). Leave blank to default to `~/projects/<name>`. Enter "none" to skip content directory entirely.
+   - **Content directories**: Prompt in a loop:
+     - Ask for a path (blank = default `~/projects/<name>` with type `code`; "none" = empty list, stop loop).
+     - If a path is provided, ask for **type** (default: `code`) and an optional **label**.
+     - Then ask: "Add another content directory? (path or done)" — repeat until "done" or "none".
    - **Todoist integration**: Create a corresponding Todoist project? (yes/no)
 
-4. Resolve content path:
-   - If user provided a path → use it.
-   - If user left blank → use `~/projects/<name>` as the default.
-   - If user entered "none" → `content_path` is `null`; skip CLAUDE.md creation.
+4. Resolve `content_paths` list:
+   - If user provided one or more paths → build list from responses.
+   - If user left first prompt blank → `content_paths: [{path: "~/projects/<name>", type: "code", label: null}]`.
+   - If user entered "none" → `content_paths: []`; skip CLAUDE.md creation.
 
-5. **Content path validation**: If `content_path` is not null, check `active-projects.yaml` and `archived-projects.yaml` for any existing project with the same `content_path`. If a duplicate is found, warn: "Path `<path>` is already used by project **<other-name>**. Proceed anyway? (y/n)"
+5. **Content path validation**: For each entry in `content_paths`, check `active-projects.yaml` and `archived-projects.yaml` for any existing project using the same path. If a duplicate is found, warn: "Path `<path>` is already used by project **<other-name>**. Proceed anyway? (y/n)"
 
 6. Create the tracking directory: `~/projects/tracking/<name>/`
 7. Create `NOTES.md` from the NOTES template in [references/templates.md](references/templates.md), inserting the overview text into the Overview section if provided.
 8. Create `TODOS.md` from the TODOS template in [references/templates.md](references/templates.md).
-9. If `content_path` is not null, create it: `mkdir -p <content_path>` and create `CLAUDE.md` from the CLAUDE.md template in [references/templates.md](references/templates.md).
+9. For each entry in `content_paths`, run `mkdir -p <path>` and create `CLAUDE.md` from the CLAUDE.md template in [references/templates.md](references/templates.md) (identical content in each).
 10. If Todoist: call `add-projects` with `name: <display_name>`. Save the returned project ID.
-11. Append the new entry to `~/projects/tracking/active-projects.yaml` (create the file with `projects: []` header if it doesn't exist). Set `last_session: null`.
+11. Append the new entry to `~/projects/tracking/active-projects.yaml` (create the file with `projects: []` header if it doesn't exist). Set `last_session: null`. Write `content_paths` list per schema in [references/yaml-schemas.md](references/yaml-schemas.md).
 
-    Use schema from [references/yaml-schemas.md](references/yaml-schemas.md).
-
-12. If `content_path` is not null, run `for i in $(seq 100); do zoxide add <content_path>; done` to register it with high frecency.
+12. For each entry in `content_paths`, run `for i in $(seq 100); do zoxide add <path>; done` to register with high frecency.
 
 13. Confirm: "Created project **<display_name>**. Tracking at `~/projects/tracking/<name>/`."
 
 ---
 
-### `/project map <path>`
+### `/project map <path> [existing-project-name]`
 
 Maps an existing content directory (e.g., a repo), extracts useful insights, and sets up project tracking files and `CLAUDE.md` for it.
+
+**If `[existing-project-name]` is provided**: add the mapped path to that project's `content_paths` instead of creating a new project. Skip to step 2–3 for exploration, then ask for **type** and optional **label** for this new entry, validate, `mkdir -p`, create `CLAUDE.md`, `zoxide add`, and append the entry to the project's `content_paths` in `active-projects.yaml`. Confirm and stop — no new project is created.
 
 1. **Resolve the path**: Expand `~` and resolve the provided `<path>` to an absolute path. If it does not exist, report an error and stop.
 
@@ -120,7 +134,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 
 5. Check `active-projects.yaml` and `archived-projects.yaml` for duplicates on the confirmed name. Abort if found.
 
-6. **Content path validation**: Check if `<path>` is already used as `content_path` by another project in either YAML file. If so, warn: "Path `<path>` is already used by project **<other-name>**. Proceed anyway? (y/n)"
+6. **Content path validation**: Check if `<path>` is already used in any `content_paths` entry by another project in either YAML file. If so, warn: "Path `<path>` is already used by project **<other-name>**. Proceed anyway? (y/n)"
 
 7. Create the tracking directory: `~/projects/tracking/<name>/`
 
@@ -135,7 +149,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 
 10. Create/overwrite `CLAUDE.md` in `<path>` using the CLAUDE.md template, populated with description, overview, key decisions (if any), and active TODOs.
 
-11. Append the new entry to `~/projects/tracking/active-projects.yaml` with `content_path: <path>` and `last_session: <today>`.
+11. Append the new entry to `~/projects/tracking/active-projects.yaml` with `content_paths: [{path: <path>, type: "code", label: null}]` and `last_session: <today>`.
 
 12. Run `for i in $(seq 100); do zoxide add <path>; done` to register the content path with high frecency.
 
@@ -150,7 +164,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 1. Read `active-projects.yaml`. If `<name>` not found, apply fuzzy matching. Report error and stop if no match.
 2. Remove the entry from `active-projects.yaml`.
 3. Add the entry to `archived-projects.yaml` (create file if needed), appending an `archived: "<today's date>"` field.
-4. If the project's `content_path` is not null, run `zoxide remove <content_path>` to remove it from the frecency database.
+4. For each entry in the project's `content_paths` (normalize from `content_path` if needed), run `zoxide remove <path>` to remove it from the frecency database.
 5. Do **not** touch Todoist. Inform the user: "Todoist project was not archived — manage that manually if needed."
 6. Confirm: "Archived **<name>**. Tracking files preserved at `~/projects/tracking/<name>/`."
 
@@ -162,7 +176,7 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 2. Remove the entry from `archived-projects.yaml`.
 3. Remove the `archived` field from the entry.
 4. Append the entry to `active-projects.yaml`.
-5. If the project's `content_path` is not null, run `for i in $(seq 100); do zoxide add <content_path>; done` to re-register it with high frecency.
+5. For each entry in the project's `content_paths` (normalize from `content_path` if needed), run `for i in $(seq 100); do zoxide add <path>; done` to re-register with high frecency.
 6. Confirm: "Unarchived **<name>**. Project is now active."
 
 ---
@@ -170,8 +184,14 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 ### `/project load <name>`
 
 1. Search `active-projects.yaml` for `<name>`. If not found, also check `archived-projects.yaml` and note if archived. Apply fuzzy matching if no exact match.
-2. Display project metadata (type, created, content path, description, last_session).
-3. **Content path validation**: If `content_path` is not null, check that the directory exists (`Bash: test -d <content_path>`). If missing, warn: "Content path `<content_path>` does not exist. You may need to clone or restore the directory."
+2. Normalize `content_path` → `content_paths` if needed (see Content Path Normalization). Display project metadata (type, created, description, last_session) and content paths as a bulleted list:
+   ```
+   Content paths:
+   - ~/repos/my-app (code) — main repo
+   - ~/docs/app (docs)
+   ```
+   Show "none" if `content_paths` is empty.
+3. **Content path validation**: For each entry in `content_paths`, check that the directory exists (`Bash: test -d <path>`). If missing, warn per path: "Content path `<path>` does not exist. You may need to clone or restore the directory."
 4. Read and display `~/projects/tracking/<name>/NOTES.md`.
 5. Read and display `~/projects/tracking/<name>/TODOS.md`.
 6. If `todoist_project_id` is set (not null), call `find-tasks` with `projectId: <todoist_project_id>` and display open tasks.
@@ -188,8 +208,8 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 
 Syncs the current session's knowledge back to all project files, keeping tracking files and `CLAUDE.md` up to date.
 
-1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found.
-2. **Content path validation**: If `content_path` is not null, check that the directory exists. Warn if missing (but continue saving tracking files).
+1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found. Normalize `content_path` → `content_paths` if needed (see Content Path Normalization).
+2. **Content path validation**: For each entry in `content_paths`, check that the directory exists. Warn per missing path (but continue saving tracking files).
 3. Read the current `~/projects/tracking/<name>/NOTES.md` and `TODOS.md`.
 4. Synthesize from the current conversation:
    - Any new decisions, context, or discoveries worth recording.
@@ -203,7 +223,7 @@ Syncs the current session's knowledge back to all project files, keeping trackin
 6. **Update `TODOS.md`**:
    - Move completed items from Active to Completed.
    - Add any new todos identified during the session.
-7. If `content_path` is not null and the directory exists, **update `CLAUDE.md`** in the content directory:
+7. For each entry in `content_paths` where the directory exists, **update `CLAUDE.md`** in that directory (identical content in each):
    - Rewrite it using the CLAUDE.md template from [references/templates.md](references/templates.md), populated with the latest description, overview, key decisions, active todos, and tracking directory path.
    - Include the 2–3 most recent session log entries in the **Recent Sessions** section.
 8. Update `last_session: <today's date>` in `active-projects.yaml` for this project.
@@ -277,7 +297,9 @@ Quick-glance summary without loading all file content.
    - **Last session**: value of `last_session` (or "never")
    - **TODO count**: count of `- [ ]` lines in `TODOS.md` (use Grep)
    - **Todoist**: if linked, call `find-tasks` with `projectId` and show open task count. If not linked, show "—".
-   - **Content path**: show path and whether it exists on disk.
+   - **Content paths**: compact inline display with existence indicator per path:
+     `~/repos/my-app (code) ✓ | ~/docs/app (docs) ✗`
+     Show "none" if `content_paths` is empty.
 
 ---
 
@@ -308,7 +330,7 @@ Renames a project across all locations.
    - Update `name` and `tracking_path` in `active-projects.yaml`.
    - Update the `/project load <name>` reference line in `TODOS.md`.
    - Ask: "Also update the display name? Current: **<display_name>**. (y/n/new value)"
-   - If `content_path` is not null and `CLAUDE.md` exists there, update the `**Tracking directory**` line.
+   - For each entry in `content_paths` where `CLAUDE.md` exists, update the `**Tracking directory**` line.
    - If `todoist_project_id` is set, ask: "Also rename in Todoist? (y/n)". If yes, call `update-projects`.
 5. Confirm: "Renamed **<old>** → **<new>**."
 
@@ -318,17 +340,24 @@ Renames a project across all locations.
 
 Interactively update project metadata without manual YAML editing.
 
-1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found.
-2. Display current metadata: `display_name`, `type`, `description`, `content_path`.
-3. Ask which fields to update (user can specify one or more, or "all").
-4. For each selected field, prompt for the new value.
-5. Write the updated entry back to `active-projects.yaml`.
-6. If `display_name` changed:
+1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found. Normalize `content_path` → `content_paths` if needed.
+2. Display current metadata: `display_name`, `type`, `description`, and `content_paths` as a numbered list with type and label.
+3. Ask which fields to update (user can specify one or more, or "all"). `content_paths` is a separate sub-flow (see below).
+4. For each selected scalar field, prompt for the new value.
+5. **`content_paths` sub-flow** (if selected or user says "edit paths"):
+   - Display numbered list of current entries.
+   - Ask: "Add, remove, or edit an entry? (add/remove/edit/done)"
+   - **Add**: prompt path, type (default: `code`), optional label; validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md`; run zoxide add loop.
+   - **Remove**: prompt for entry number to remove; confirm; run `zoxide remove <path>`; ask: "Also delete `CLAUDE.md` from this path? (y/n)"; delete if confirmed.
+   - **Edit**: prompt entry number; prompt new path, type, label (blank = keep current); if path changed run `zoxide remove <old>` and `zoxide add <new>`.
+   - Repeat until "done".
+6. Write the updated entry back to `active-projects.yaml` using `content_paths` format.
+7. If `display_name` changed:
    - Update the heading in `NOTES.md`.
    - Update the heading in `TODOS.md`.
-   - If `content_path` is not null and `CLAUDE.md` exists, update its heading.
+   - For each entry in `content_paths` where `CLAUDE.md` exists, update its heading.
    - If Todoist is linked, ask: "Also update Todoist project name? (y/n)". If yes, call `update-projects`.
-7. Confirm: "Updated metadata for **<name>**."
+8. Confirm: "Updated metadata for **<name>**."
 
 ---
 

@@ -9,7 +9,9 @@ When creating a new project, create `~/projects/tracking/<name>/NOTES.md` with:
 
 **Type**: <type>
 **Created**: <YYYY-MM-DD>
-**Content path**: <content_path or "N/A">
+**Content paths**:
+- `<path>` (<type>) — <label or basename>
+- *(none if content_paths is empty)*
 
 ## Overview
 
@@ -66,7 +68,7 @@ When creating a new project, create `~/projects/tracking/<name>/TODOS.md` with:
 
 ## CLAUDE.md Template
 
-When creating a new project (if content_path is not null), create `<content_path>/CLAUDE.md` with:
+When creating a new project, create `<path>/CLAUDE.md` in **each entry** in `content_paths` with identical content:
 
 ```markdown
 # <Display Name>
@@ -103,7 +105,7 @@ When creating a new project (if content_path is not null), create `<content_path
 <!-- Populated by /project save -->
 ```
 
-When updated by `/project save`, replace the Key Decisions, Active TODOs, Recent Sessions, and Notes sections with current content from NOTES.md and TODOS.md.
+When updated by `/project save`, replace the Key Decisions, Active TODOs, Recent Sessions, and Notes sections with current content from NOTES.md and TODOS.md. Write identical content to the `CLAUDE.md` in **each** content directory.
 
 ---
 
