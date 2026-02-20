@@ -1,11 +1,12 @@
 {
   "name": "project-tracker",
   "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "author": {
     "name": "Raul"
   },
   "repository": "https://github.com/raulfrk/claude-project-tracker",
   "license": "MIT",
-  "keywords": ["project-management", "tracking", "todoist", "learning"]
+  "keywords": ["project-management", "tracking", "todoist", "learning"],
+  "hooks": "./hooks/hooks.json"
 }
