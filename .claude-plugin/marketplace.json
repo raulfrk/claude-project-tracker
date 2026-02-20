@@ -1,13 +1,20 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-project-tracker",
+  "description": "Project management plugin for Claude Code with local YAML indexes, per-project tracking, learning mode, and Todoist integration",
   "owner": {
     "name": "Raul"
   },
   "plugins": [
     {
       "name": "project-tracker",
-      "source": ".",
-      "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration"
+      "source": "./",
+      "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
+      "author": {
+        "name": "Raul"
+      },
+      "category": "productivity",
+      "version": "1.0.0"
     }
   ]
 }
