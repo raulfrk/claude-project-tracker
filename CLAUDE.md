@@ -25,12 +25,13 @@ A learning project to iteratively improve the `/project` Claude Code skill — a
 - Always bump the plugin version in `.claude-plugin/marketplace.json` (and `plugin.json`) before pushing — `claude plugin update` checks versions and won't update if unchanged.
 - CLAUDE.md split: public `CLAUDE.md` (no local paths, safe to commit) + private `CLAUDE.local.md` (gitignored, tracking dir + session data); ensure-gitignore adds `*.local.md` to `.gitignore` in git repos automatically.
 - Three assistance modes: `standard` (no learning), `learning` (Claude implements + explains + quizzes; mastery tracked; user observes), `active-learning` (pair programming; Claude scaffolds; user implements; Claude reviews).
+- `/project load` requires two Bash permissions: `Bash(test -d //home/raul/**)` for content path existence checks and `Bash(git -C //home/raul/**)` for ensure-gitignore's `git rev-parse --show-toplevel`. Scope to `//home/raul/**` to cover content paths anywhere in home.
 
 ## Project Structure
 
-- `.claude-plugin/` — plugin manifest (`plugin.json`, `marketplace.json`)
-- `skills/project/` — main skill (`SKILL.md`) and references (`references/yaml-schemas.md`, `references/templates.md`)
-- `hooks/` — post-edit validation hook (`hooks.json`, `validate-syntax.sh`)
+- `.claude-plugin/marketplace.json` — marketplace catalog listing all plugins
+- `plugins/project-tracker/` — project management plugin (skills, hooks, plugin.json)
+- `plugins/code-review-agents/` — code review agent plugin (skills, hooks, plugin.json)
 
 ## Development Notes
 

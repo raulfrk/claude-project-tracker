@@ -1,20 +1,33 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-project-tracker",
-  "description": "Project management plugin for Claude Code with local YAML indexes, per-project tracking, learning mode, and Todoist integration",
+  "description": "Raul's Claude Code plugin collection — project management, code review agents, and more",
   "owner": {
     "name": "Raul"
+  },
+  "metadata": {
+    "pluginRoot": "./plugins"
   },
   "plugins": [
     {
       "name": "project-tracker",
-      "source": {"source": "url", "url": "https://github.com/raulfrk/claude-project-tracker.git"},
+      "source": "project-tracker",
       "description": "Local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration",
       "author": {
         "name": "Raul"
       },
       "category": "productivity",
-      "version": "1.0.4"
+      "version": "1.0.5"
+    },
+    {
+      "name": "code-review-agents",
+      "source": "code-review-agents",
+      "description": "Per-language code review agents with tiered severity findings and actionable suggestions. Supports C++ with more languages planned.",
+      "author": {
+        "name": "Raul"
+      },
+      "category": "code-quality",
+      "version": "0.1.0"
     }
   ]
 }

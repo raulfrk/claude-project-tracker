@@ -1,8 +1,19 @@
 # claude-project-tracker
 
-A Claude Code plugin for local project management with YAML indexes, per-project tracking files, learning mode, and optional Todoist integration.
+A Claude Code plugin marketplace with productivity and code quality plugins.
 
-## What It Does
+## Plugins
+
+| Plugin | Description | Install |
+|--------|-------------|---------|
+| `project-tracker` | Local project management with YAML indexes, tracking files, learning mode, and Todoist integration | `claude plugin install project-tracker@claude-project-tracker` |
+| `code-review-agents` | Per-language code review agents with tiered severity findings and actionable suggestions (C++ supported) | `claude plugin install code-review-agents@claude-project-tracker` |
+
+---
+
+## `project-tracker`
+
+### What It Does
 
 - **Unified project index**: All projects tracked in `~/projects/tracking/active-projects.yaml`
 - **Per-project files**: Each project gets `NOTES.md` and `TODOS.md` in `~/projects/tracking/<name>/`
@@ -10,36 +21,35 @@ A Claude Code plugin for local project management with YAML indexes, per-project
 - **Todoist integration** (optional): Bidirectional task sync between local TODOS.md and Todoist
 - **Learning mode**: Tracks concepts taught per-project with mastery levels, adjusts explanations accordingly
 - **Fuzzy name matching**: All commands use case-insensitive partial matching on project names
-- **YAML/JSON validation hook**: Validates syntax after every file edit
 
-## Prerequisites
+### Prerequisites
 
 - Claude Code CLI
-- `zoxide` (for frecency-based directory tracking) — `apt install zoxide` or `brew install zoxide`
-- `jq` (for the validation hook) — `apt install jq` or `brew install jq`
+- `zoxide` — `apt install zoxide` or `brew install zoxide`
+- `jq` — `apt install jq` or `brew install jq`
 - Python 3 with `pyyaml` — `pip install pyyaml`
-- **Optional**: [Todoist MCP server](https://github.com/Doist/todoist-mcp) for Todoist integration
+- **Optional**: [Todoist MCP server](https://github.com/Doist/todoist-mcp)
 
-## Installation
+### Command Reference
 
-```bash
-# Add the plugin marketplace
-/plugin marketplace add your-username/claude-project-tracker
+| Command | Description |
+|---------|-------------|
+| `/project list` | Show all active projects |
+| `/project new <name>` | Create a new project with guided setup |
+| `/project map <path>` | Map an existing directory into the tracker |
+| `/project load <name>` | Load project context into the session |
+| `/project save <name>` | Sync session knowledge back to tracking files |
+| `/project archive <name>` | Move a project to archived status |
+| `/project unarchive <name>` | Restore an archived project |
+| `/project sync <name> [--dry-run]` | Bidirectional Todoist task sync |
+| `/project status <name>` | Quick summary (TODO count, last session) |
+| `/project search <query>` | Search across all projects' NOTES and TODOS |
+| `/project link-todoist <name>` | Link a project to Todoist |
+| `/project rename <old> <new>` | Rename across all locations |
+| `/project edit <name>` | Update project metadata interactively |
+| `/project mode <name> [mode]` | Get or set learning/standard/active-learning mode |
 
-# Install the plugin
-/plugin install project-tracker@claude-project-tracker
-```
-
-Or clone and use locally:
-
-```bash
-git clone https://github.com/your-username/claude-project-tracker.git
-claude --plugin-dir ~/path/to/claude-project-tracker
-```
-
-## Recommended Permissions
-
-Add to your `~/.claude/settings.json`:
+### Recommended Permissions
 
 ```json
 {
@@ -47,80 +57,66 @@ Add to your `~/.claude/settings.json`:
     "allow": [
       "Bash(zoxide add *)",
       "Bash(zoxide remove *)",
-      "Bash(git log *)",
-      "Bash(git remote *)",
+      "Bash(test -d //home/<you>/**)",
+      "Bash(git -C //home/<you>/**)",
       "Bash(mkdir -p ~/projects/**)",
-      "Bash(mv ~/projects/tracking/**)",
-      "Write(//home/<your-username>/projects/**)"
+      "Write(//home/<you>/projects/**)"
     ]
   }
 }
 ```
 
-## Quick Start
+---
+
+## `code-review-agents`
+
+### What It Does
+
+- Structured code reviews with **4 severity tiers**: Bugs/Safety → Correctness → Quality → Style
+- **Actionable findings**: Every issue includes a before/after code example
+- **Git-aware**: Review staged changes, diffs between refs, or specific files/directories
+- **Fix mode**: Offer to apply fixes interactively
+- **Tool integration**: Optionally run `clang-tidy` and `cppcheck` and integrate their output
+- **Extensible**: New languages are added as reference files — no structural changes needed
+
+### Languages
+
+| Language | Status |
+|----------|--------|
+| C++ | ✅ Supported |
+| Rust | Planned |
+| Python | Planned |
+| Go | Planned |
+
+### Usage
 
 ```
-/project-tracker:project list
-/project-tracker:project new my-app
-/project-tracker:project load my-app
-/project-tracker:project save my-app
+/review cpp <file.cpp>          — review a single file
+/review cpp src/                — review all C++ files in a directory
+/review cpp staged              — review git staged changes
+/review cpp HEAD~3              — review last 3 commits
+/review cpp main..HEAD          — review branch diff
+/review cpp <target> --fix      — review and offer to apply fixes
+/review cpp <target> --tier 1   — only show blocking (Tier 1) issues
+/review cpp <target> --tool     — also run clang-tidy/cppcheck
 ```
 
-## Data Directory Conventions
+### Review Tiers
 
-```
-~/projects/
-├── tracking/
-│   ├── active-projects.yaml        # Project index
-│   ├── archived-projects.yaml      # Archived projects
-│   └── <project-name>/
-│       ├── NOTES.md                # Notes, decisions, session log
-│       ├── TODOS.md                # Task list (syncs with Todoist)
-│       ├── session-log-archive.md  # Older session log entries (auto-created)
-│       └── learning/               # Learning mode data (optional)
-│           ├── learning.yaml
-│           └── <topic-slug>.md
-└── <project-name>/                 # Default content path (if no repo)
-```
+| Tier | Name | Verdict |
+|------|------|---------|
+| 1 | Bugs/Safety | BLOCK MERGE |
+| 2 | Correctness/Design | NEEDS CHANGES |
+| 3 | Quality/Modern Practices | PASS WITH COMMENTS |
+| 4 | Style | PASS WITH COMMENTS |
 
-## Command Reference
+### Prerequisites
 
-| Command | Description |
-|---------|-------------|
-| `/project list` | Show all active projects in a table |
-| `/project new <name>` | Create a new project with guided setup |
-| `/project map <path>` | Map an existing directory into the tracker |
-| `/project load <name>` | Load project context into the session |
-| `/project save <name>` | Sync session knowledge back to tracking files |
-| `/project archive <name>` | Move a project to archived status |
-| `/project unarchive <name>` | Restore an archived project to active |
-| `/project sync <name> [--dry-run]` | Bidirectional Todoist task sync |
-| `/project status <name>` | Quick summary (TODO count, last session, Todoist) |
-| `/project search <query>` | Search across all projects' NOTES and TODOS |
-| `/project link-todoist <name>` | Link an existing project to a Todoist project |
-| `/project rename <old> <new>` | Rename a project across all locations |
-| `/project edit <name>` | Interactively update project metadata |
-| `/project mode <name> [mode]` | Get or set learning/standard mode |
+- Claude Code CLI
+- `jq` (for the post-edit hook)
+- **Optional**: `clang-tidy`, `cppcheck` (for `--tool` mode)
 
-## Learning Mode
-
-Enable per-project with `/project mode <name> learning`. When active:
-
-- Claude explains concepts before using them (depth based on your tracked mastery)
-- Mastery is assessed at save time and stored in `learning/learning.yaml`
-- Each topic gets its own `.md` file with explanation, examples, and review notes
-- Mastery levels: `none` → `emerging` → `developing` → `solid` → `mastered`
-
-## Todoist Integration
-
-Todoist is **optional**. When linked:
-
-- `/project new` can create a paired Todoist project
-- `/project sync` bidirectionally reconciles tasks
-- `/project load` shows live open tasks from Todoist
-- `/project save` offers to sync at session end
-
-Projects without Todoist work fully with local TODOS.md only.
+---
 
 ## License
 

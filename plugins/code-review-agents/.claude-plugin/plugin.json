@@ -1,0 +1,11 @@
+{
+  "name": "code-review-agents",
+  "description": "Per-language code review agents with tiered severity findings and actionable suggestions. Supports C++ with more languages planned.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Raul"
+  },
+  "repository": "https://github.com/raulfrk/claude-project-tracker",
+  "license": "MIT",
+  "keywords": ["code-review", "cpp", "static-analysis", "quality"]
+}
