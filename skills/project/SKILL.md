@@ -489,6 +489,8 @@ When a project is loaded and the **current working context** involves a content 
 
 Claude implements the code fully. The user observes, answers questions, and is never asked to write code.
 
+**Sequence per task**: (1) explain the concept before touching any code, (2) implement with narration, (3) quiz after the work unit.
+
 - Narrate significant decisions (why, not just what).
 - Highlight transferable patterns when they appear (e.g., "this is the same pattern as X").
 - After meaningful work units, quiz the user with a comprehension check (e.g., "Could you describe what we just did?"). Do not quiz after every step — use judgment.
