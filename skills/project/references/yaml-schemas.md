@@ -11,6 +11,7 @@ projects:
       - path: "~/repos/my-app"
         type: "code"               # code | docs | config | assets | other
         label: "main repo"         # Optional. Defaults to directory basename if omitted.
+        mode: "learning"           # Optional. standard | learning. Overrides project-level mode for this path.
     type: "code"                     # One of: code | personal | documentation | learning
     mode: "standard"                 # standard | learning. Default: standard.
     created: "2026-02-19"            # ISO date
@@ -61,7 +62,8 @@ topics:
 - `name` must be kebab-case (lowercase letters, digits, hyphens only).
 - `content_paths` is a list; use `content_paths: []` when no directories are set.
 - `todoist_project_id` may be `null` when not applicable.
-- `mode` defaults to `standard` when not present (backward compatible).
+- `mode` at project level defaults to `standard` when not present (backward compatible).
+- `mode` on a `content_paths` entry is optional. When present, it overrides the project-level `mode` for that path. When absent, the path inherits the project-level `mode`. Effective mode = `entry.mode ?? project.mode ?? "standard"`.
 - The file always starts with `projects:` at the root level, even when empty (`projects: []`).
 - Dates use `YYYY-MM-DD` format.
 
@@ -73,3 +75,10 @@ Older entries may have a singular `content_path: "string" | null` field. On read
 - `content_path: null` → `content_paths: []`
 
 On every write, always output `content_paths` (plural) and omit `content_path`. No bulk migration — projects update incrementally as touched.
+
+## Backward Compatibility: Per-Path `mode`
+
+Older entries have `mode` only at the project level, not on individual `content_paths` entries. This is valid and requires no migration.
+
+- If a `content_paths` entry has no `mode` field, its effective mode is the project-level `mode` (which itself defaults to `standard`).
+- On write, only include `mode` on a `content_paths` entry if it differs from the project-level `mode`. Omit it otherwise to keep YAML clean.

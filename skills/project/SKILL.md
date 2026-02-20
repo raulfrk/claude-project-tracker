@@ -30,6 +30,14 @@ Older project entries may use the singular `content_path` field. Before using an
 
 On every write, always output `content_paths` (plural list) and omit `content_path`. Apply this normalization in all commands — no bulk migration needed.
 
+### Mode Normalization
+
+Each `content_paths` entry may optionally include a `mode` field that overrides the project-level `mode` for that path.
+
+- **Effective mode** for a path: `entry.mode ?? project.mode ?? "standard"`
+- On write, only include `mode` on a `content_paths` entry when it differs from the project-level `mode`. Omit it when equal, to keep YAML clean.
+- A project is **learning-active** when at least one content path has effective mode `learning`.
+
 ---
 
 ## Global Behavior: Fuzzy Name Matching
@@ -54,7 +62,9 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
 
    | Name | Display Name | Type | Mode | Created | Last Session | Todoist |
    |------|-------------|------|------|---------|--------------|---------|
-   | ... | ... | ... | standard / learning | ... | ... | linked / — |
+   | ... | ... | ... | <mode summary> | ... | ... | linked / — |
+
+   **Mode column logic**: If all paths share the same effective mode, show that mode (`standard` or `learning`). If paths have mixed modes, show `mixed (N/M learning)`. If no content paths, show the project-level mode.
 
 3. Check if `~/projects/tracking/archived-projects.yaml` exists. If so, read it and mention the count: "X archived project(s). Use `/project load <name>` to view archived."
 
@@ -73,6 +83,11 @@ Apply fuzzy matching to all commands that accept a `<name>` argument.
      - Ask for a path (blank = default `~/projects/<name>` with type `code`; "none" = empty list, stop loop).
      - If a path is provided, ask for **type** (default: `code`) and an optional **label**.
      - Then ask: "Add another content directory? (path or done)" — repeat until "done" or "none".
+   - **Mode**: After the content directory loop:
+     - If only one path (or no paths): ask once — "Mode for this project? (standard/learning, default: standard)". Set as project-level `mode`.
+     - If more than one path: ask "Same mode for all paths, or set per path? (all/per-path)".
+       - If "all": ask for mode once, set as project-level `mode`, no per-path overrides.
+       - If "per-path": ask for mode per path. Set project-level `mode` to the most common value. Write `mode` on entries that differ from the project-level.
    - **Todoist integration**: Create a corresponding Todoist project? (yes/no)
 
 4. Resolve `content_paths` list:
@@ -195,11 +210,12 @@ Maps an existing content directory (e.g., a repo), extracts useful insights, and
 4. Read and display `~/projects/tracking/<name>/NOTES.md`.
 5. Read and display `~/projects/tracking/<name>/TODOS.md`.
 6. If `todoist_project_id` is set (not null), call `find-tasks` with `projectId: <todoist_project_id>` and display open tasks.
-7. If `mode: learning` (or mode field absent defaults to `standard`):
+7. **Learning mode check**: Compute the effective mode for each content path (see Mode Normalization). If the project is learning-active (at least one path has effective mode `learning`):
    - Read `~/projects/tracking/<name>/learning/learning.yaml` if it exists.
    - If the file exists and has topics, display: "**Learning mode active.** X topic(s) tracked:" followed by a mastery breakdown (count per mastery level, e.g., `emerging: 2, developing: 1, solid: 1`).
    - If the file is empty or missing: "**Learning mode active.** No topics tracked yet."
-   - Append to announcement: "Learning mode active — I'll teach as we build."
+   - List which paths are in learning mode: "Learning paths: `<path1>`, `<path2>`". If mixed, also list: "Standard paths: `<path3>`".
+   - Append to announcement: "Learning mode active for <N>/<total> content path(s) — I'll teach as we build in those directories."
 8. Announce: "Project **<name>** is now loaded. I'll offer to sync tasks to Todoist as we work."
 
 ---
@@ -227,11 +243,12 @@ Syncs the current session's knowledge back to all project files, keeping trackin
    - Rewrite it using the CLAUDE.md template from [references/templates.md](references/templates.md), populated with the latest description, overview, key decisions, active todos, and tracking directory path.
    - Include the 2–3 most recent session log entries in the **Recent Sessions** section.
 8. Update `last_session: <today's date>` in `active-projects.yaml` for this project.
-9. If `mode: learning`:
+9. If the project is learning-active (at least one content path has effective mode `learning`):
    - Identify any concepts taught or significantly discussed during this session.
    - For each **new** concept: create `~/projects/tracking/<name>/learning/<topic-slug>.md` from the Learning Topic template in [references/templates.md](references/templates.md). Add a new entry to `learning.yaml`.
    - For each **revisited** concept (already in `learning.yaml`): update `last_reviewed` to today, re-assess mastery based on the session, and append a dated note to the `## Review Notes` section of its `.md` file.
    - Add a "Learning" bullet to the session log entry: "Covered topics: <comma-separated titles>."
+   - Note: Topics are project-wide. Even if only some paths are in learning mode, all topics go into the shared `learning/` directory.
 10. **Sync offer**: If `todoist_project_id` is not null, ask: "Sync tasks with Todoist now? (y/n)". If yes, run the sync logic from `/project sync <name>`.
 10. Confirm: "Saved project **<name>**. Tracking files and `CLAUDE.md` are up to date."
 
@@ -341,15 +358,15 @@ Renames a project across all locations.
 Interactively update project metadata without manual YAML editing.
 
 1. Read `active-projects.yaml` to find `<name>`. Apply fuzzy matching if no exact match. Report error and stop if not found. Normalize `content_path` → `content_paths` if needed.
-2. Display current metadata: `display_name`, `type`, `description`, and `content_paths` as a numbered list with type and label.
+2. Display current metadata: `display_name`, `type`, `description`, project-level `mode`, and `content_paths` as a numbered list with type, label, and mode override (if any).
 3. Ask which fields to update (user can specify one or more, or "all"). `content_paths` is a separate sub-flow (see below).
 4. For each selected scalar field, prompt for the new value.
 5. **`content_paths` sub-flow** (if selected or user says "edit paths"):
-   - Display numbered list of current entries.
+   - Display numbered list of current entries (path, type, label, and mode override if set).
    - Ask: "Add, remove, or edit an entry? (add/remove/edit/done)"
-   - **Add**: prompt path, type (default: `code`), optional label; validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md`; run zoxide add loop.
+   - **Add**: prompt path, type (default: `code`), optional label, optional mode override (blank = inherit project mode); validate for duplicate paths across projects; `mkdir -p <path>`; create `CLAUDE.md`; run zoxide add loop. If mode is `learning` and the learning directory doesn't exist, create it.
    - **Remove**: prompt for entry number to remove; confirm; run `zoxide remove <path>`; ask: "Also delete `CLAUDE.md` from this path? (y/n)"; delete if confirmed.
-   - **Edit**: prompt entry number; prompt new path, type, label (blank = keep current); if path changed run `zoxide remove <old>` and `zoxide add <new>`.
+   - **Edit**: prompt entry number; prompt new path, type, label, mode (blank = keep current for each); if path changed run `zoxide remove <old>` and `zoxide add <new>`. If new mode equals project-level mode, omit the per-path `mode` field on write.
    - Repeat until "done".
 6. Write the updated entry back to `active-projects.yaml` using `content_paths` format.
 7. If `display_name` changed:
@@ -361,26 +378,38 @@ Interactively update project metadata without manual YAML editing.
 
 ---
 
-### `/project mode <name> [mode]`
+### `/project mode <name> [mode] [path-or-index]`
 
-Get or set the assistance mode for a project.
+Get or set the assistance mode, globally or per content path.
 
-1. Find project in `active-projects.yaml`. Apply fuzzy matching. Report error and stop if not found.
-2. If no `[mode]` argument provided:
-   - Display current mode (read `mode` field; treat missing as `standard`).
-   - If mode is `learning`, read `learning/learning.yaml` and show topic count + mastery breakdown.
+1. Find project in `active-projects.yaml`. Apply fuzzy matching. Report error and stop if not found. Normalize content paths and compute effective modes.
+
+2. **Display mode (no `[mode]` argument)**:
+   - Show project-level default mode and a table of all content paths with their effective mode:
+     ```
+     Project default: standard
+
+     #  Path                              Effective mode
+     1  ~/repos/my-app                    learning (override)
+     2  ~/docs/app                        standard (default)
+     ```
+   - If the project is learning-active, read `learning/learning.yaml` and show topic count + mastery breakdown.
    - Stop.
+
 3. Validate `[mode]` is `standard` or `learning`. If invalid, report: "Unknown mode '<mode>'. Valid modes: standard, learning." Stop.
-4. If project is already set to that mode, report: "Project **<name>** is already in `<mode>` mode." Stop.
-5. **Switching to `learning`**:
-   - Create `~/projects/tracking/<name>/learning/` directory if it doesn't exist.
+
+4. **Set mode**:
+   - **If `[path-or-index]` is provided**: resolve to a specific content_paths entry by 1-based index or path substring match. Set `mode` on that entry. If the new mode equals the project-level `mode`, remove the per-path `mode` field instead (clean up). Write to `active-projects.yaml`.
+   - **If `[path-or-index]` is `all` or not provided**: set the project-level `mode` to the given value. Clear all per-path `mode` overrides so all paths inherit the new default. Write to `active-projects.yaml`.
+
+5. **If any path is switching to `learning`** (and learning directory doesn't exist):
+   - Create `~/projects/tracking/<name>/learning/` directory.
    - Create `learning.yaml` from the learning.yaml template in [references/templates.md](references/templates.md) only if it doesn't already exist (preserve prior data).
-   - Update `mode: "learning"` in `active-projects.yaml`.
-   - Confirm: "Project **<name>** switched to `learning` mode. Learning directory ready at `~/projects/tracking/<name>/learning/`."
-6. **Switching to `standard`**:
-   - Update `mode: "standard"` in `active-projects.yaml`.
-   - Do NOT delete or modify the learning directory or any `.md` files — preserve all prior data.
-   - Confirm: "Project **<name>** switched to `standard` mode. Learning data preserved."
+
+6. **If no paths remain in `learning`** (project was learning-active, now none are):
+   - Do NOT delete learning directory or files — preserve all prior data.
+
+7. Confirm with the updated table showing new effective modes.
 
 ---
 
@@ -413,7 +442,9 @@ When the user mentions tasks, todos, or action items during a session after `/pr
 
 ## Ambient Behavior: Learning Mode
 
-When a project is loaded with `mode: learning`, apply these behaviors throughout the session in addition to the standard ambient behaviors.
+When a project is loaded and the **current working context** involves a content path with effective mode `learning`, apply these behaviors throughout the session in addition to the standard ambient behaviors.
+
+**Context detection**: Determine the active content path by matching the current working directory against the project's `content_paths` entries (longest prefix match). If the matched path has effective mode `learning`, learning behaviors are active. If no path matches or the matched path's effective mode is `standard`, learning behaviors are inactive. When working across multiple paths in one session, learning behaviors toggle based on which path is being worked in.
 
 ### Before tasks
 
