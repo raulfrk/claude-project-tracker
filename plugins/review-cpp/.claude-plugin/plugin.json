@@ -1,0 +1,11 @@
+{
+  "name": "review-cpp",
+  "description": "C++ code review using 10 parallel specialized agents covering architecture, modern C++, performance, memory safety, concurrency, security, testing, and more",
+  "version": "0.1.0",
+  "author": {
+    "name": "Raul"
+  },
+  "repository": "https://github.com/raulfrk/claude-project-tracker",
+  "license": "MIT",
+  "keywords": ["cpp", "c++", "code-review", "agents", "performance", "safety", "security", "linting"]
+}

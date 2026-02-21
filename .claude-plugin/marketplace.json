@@ -15,6 +15,16 @@
       },
       "category": "productivity",
       "version": "1.1.0"
+    },
+    {
+      "name": "review-cpp",
+      "source": "./plugins/review-cpp",
+      "description": "C++ code review using 10 parallel specialized agents covering architecture, modern C++, performance, memory safety, concurrency, security, testing, and more",
+      "author": {
+        "name": "Raul"
+      },
+      "category": "code-review",
+      "version": "0.1.0"
     }
   ]
 }
