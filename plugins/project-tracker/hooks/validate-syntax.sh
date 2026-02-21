@@ -1,6 +1,11 @@
 #!/bin/bash
 # Post-edit hook: validates YAML and JSON syntax after Claude edits/writes a file
 
+# Check if validation hook is disabled in project settings
+if grep -q 'validation_hook: false' "$HOME/.claude/project-settings.yaml" 2>/dev/null; then
+  exit 0
+fi
+
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 

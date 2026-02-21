@@ -6,7 +6,7 @@
 projects:
   - name: "kebab-case-id"           # Unique identifier, used for directory and lookups
     display_name: "Human Name"       # Human-readable name
-    tracking_path: "~/projects/tracking/kebab-case-id"
+    tracking_path: "{tracking_root}/kebab-case-id"  # {tracking_root} from project-settings.yaml
     content_paths:                   # Ordered list of content directories. Empty list = none.
       - path: "~/repos/my-app"
         type: "code"               # code | docs | config | assets | other
@@ -28,7 +28,7 @@ Archived entries add one additional field:
 
 ## `learning/learning.yaml`
 
-Stored at `~/projects/tracking/<name>/learning/learning.yaml`. Created on-demand when a project's mode is set to `learning` or `active-learning`.
+Stored at `{tracking_root}/<name>/learning/learning.yaml`. Created on-demand when a project's mode is set to `learning` or `active-learning`.
 
 ```yaml
 topics:
@@ -62,8 +62,8 @@ topics:
 - `name` must be kebab-case (lowercase letters, digits, hyphens only).
 - `content_paths` is a list; use `content_paths: []` when no directories are set.
 - `todoist_project_id` may be `null` when not applicable.
-- `mode` at project level defaults to `standard` when not present (backward compatible). Valid values: `standard`, `learning`, `active-learning`.
-- `mode` on a `content_paths` entry is optional. When present, it overrides the project-level `mode` for that path. When absent, the path inherits the project-level `mode`. Effective mode = `entry.mode ?? project.mode ?? "standard"`.
+- `mode` at project level defaults to `{default_mode}` when not present (backward compatible). Valid values: `standard`, `learning`, `active-learning`.
+- `mode` on a `content_paths` entry is optional. When present, it overrides the project-level `mode` for that path. When absent, the path inherits the project-level `mode`. Effective mode = `entry.mode ?? project.mode ?? "{default_mode}"`.
 - The file always starts with `projects:` at the root level, even when empty (`projects: []`).
 - Dates use `YYYY-MM-DD` format.
 
@@ -83,3 +83,27 @@ Older entries have `mode` only at the project level, not on individual `content_
 - If a `content_paths` entry has no `mode` field, its effective mode is the project-level `mode` (which itself defaults to `standard`).
 - On write, only include `mode` on a `content_paths` entry if it differs from the project-level `mode`. Omit it otherwise to keep YAML clean.
 - Both `learning` and `active-learning` are learning-active modes — they both trigger learning directory creation and mastery tracking. They differ only in who implements the code.
+
+---
+
+## `project-settings.yaml`
+
+Stored at `~/.claude/project-settings.yaml`. Created by `/project init`. If this file does not exist, all defaults apply — behavior is identical to the pre-settings plugin versions (fully backward compatible).
+
+```yaml
+tracking_root: "~/projects/tracking"        # Base directory for all project tracking
+default_content_root: "~/projects"           # Default content path root when user doesn't specify
+todoist_enabled: true                        # Whether to offer/use Todoist integration
+zoxide_enabled: true                         # Whether to update zoxide frecency database
+create_context_files: true                   # Whether to auto-create CLAUDE.md/CLAUDE.local.md
+validation_hook: true                        # Whether post-edit YAML/JSON syntax validation runs
+default_mode: "standard"                     # Default mode for new projects: standard | learning | active-learning
+session_log_max_entries: 20                  # Threshold before session log entries are archived
+```
+
+### Notes
+
+- All fields are optional. Missing fields use the defaults shown above.
+- `tracking_root` and `default_content_root` support `~` prefix (expanded to user home).
+- `default_mode` must be one of: `standard`, `learning`, `active-learning`.
+- `session_log_max_entries` must be a positive integer.
